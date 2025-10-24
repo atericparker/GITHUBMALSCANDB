@@ -48,10 +48,22 @@ echo "Installing Python dependencies..."
 pip install -q --upgrade pip
 pip install -q -r "$WEB_DIR/requirements.txt"
 
-# Copy .env to web directory if it doesn't exist there
-if [ ! -f "$WEB_DIR/.env" ]; then
-    echo "Copying .env to web directory..."
-    cp "$SCRIPT_DIR/.env" "$WEB_DIR/.env"
+# Ensure .env in the web directory stays symlinked to the project root
+ROOT_ENV="$SCRIPT_DIR/.env"
+WEB_ENV="$WEB_DIR/.env"
+
+if [ -L "$WEB_ENV" ]; then
+    if [ "$(readlink "$WEB_ENV")" != "$ROOT_ENV" ]; then
+        echo "Updating .env symlink in web directory..."
+        ln -sf "$ROOT_ENV" "$WEB_ENV"
+    fi
+elif [ -e "$WEB_ENV" ]; then
+    echo "Replacing existing .env in web directory with symlink..."
+    rm "$WEB_ENV"
+    ln -s "$ROOT_ENV" "$WEB_ENV"
+else
+    echo "Creating .env symlink in web directory..."
+    ln -s "$ROOT_ENV" "$WEB_ENV"
 fi
 
 # Launch the application
